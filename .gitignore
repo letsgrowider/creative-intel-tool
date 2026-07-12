@@ -1,0 +1,16 @@
+# Pipeline outputs
+jobs/
+images/
+videos/
+analyses/
+output/
+pipeline_results.json
+__pycache__/
+*.pyc
+.env
+*.mp4
+*.jpg
+*.png
+
+# Node
+node_modules/
