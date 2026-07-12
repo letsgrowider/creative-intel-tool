@@ -7,7 +7,7 @@ from pathlib import Path
 import anthropic
 
 OUTPUT_DIR = "output"
-MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-sonnet-4-6"
 MAX_TOKENS = 16000
 
 def _get_claude():

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import anthropic
 
-MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-sonnet-4-6"
 
 
 def _get_claude():
@@ -139,7 +139,7 @@ def _call_claude(analyses: list[str], brand_voice: str, competitors: set[str], t
 
     response = _get_claude().messages.create(
         model=MODEL,
-        max_tokens=8000,
+        max_tokens=16000,
         messages=[{"role": "user", "content": prompt}],
     )
     raw = response.content[0].text.strip()
