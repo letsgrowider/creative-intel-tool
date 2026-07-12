@@ -139,26 +139,32 @@ def scrape_meta_ads(
     Returns:
         Normalised, deduplicated ad dicts sorted oldest-first.
     """
+    # Broad default — catches ads running in any major market
     if countries is None:
-        countries = ["IN"]
+        countries = ["IN", "US", "GB", "AU", "CA", "SG", "AE", "ZA"]
 
     token    = _get_token()
     all_ads: list[dict] = []
     seen:    set[str]   = set()
+    errors:  list[str]  = []
 
     for url in page_urls:
         print(f"[META API] Resolving {url} ...")
         try:
             page_id = _page_id_from_url(url, token)
         except Exception as exc:
-            print(f"[META API] Skipping {url}: {exc}")
+            msg = f"Could not resolve page ID for {url}: {exc}"
+            print(f"[META API] {msg}")
+            errors.append(msg)
             continue
 
         print(f"[META API] Fetching ads for page {page_id} ...")
         try:
             raw_ads = _fetch_page_ads(page_id, token, max_ads, countries)
         except Exception as exc:
-            print(f"[META API] Error for {url}: {exc}")
+            msg = f"API error for {url}: {exc}"
+            print(f"[META API] {msg}")
+            errors.append(msg)
             continue
 
         print(f"[META API] {len(raw_ads)} ads — normalising & extracting media ...")
@@ -172,6 +178,8 @@ def scrape_meta_ads(
 
     all_ads.sort(key=lambda a: a.get("startDate") or "")
     print(f"[META API] Done — {len(all_ads)} unique ads total")
+    if not all_ads and errors:
+        raise RuntimeError("No ads found. Errors:\n" + "\n".join(errors))
     return all_ads
 
 

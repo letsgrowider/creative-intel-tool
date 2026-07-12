@@ -100,14 +100,6 @@
     background:var(--teal); border-color:var(--teal); color:#fff;
   }
 
-  /* ── Demo prefill ── */
-  .demo-btn {
-    background:var(--teal-light); border:none; color:var(--teal-dark);
-    padding:8px 18px; border-radius:8px; font-size:.82rem; font-weight:700;
-    cursor:pointer; transition:background .2s; font-family:inherit;
-    margin-bottom:20px;
-  }
-  .demo-btn:hover { background:#99F6E4 }
 
   /* ── Submit ── */
   .submit-btn {
@@ -194,7 +186,6 @@
     <p>Enter your client details and competitor Facebook pages. We'll scrape their ads, analyze every creative, and generate a full strategic brief.</p>
   </div>
 
-  <button class="demo-btn" onclick="prefillDemo()">⚡ Load demo data (Señorita Drinks vs Drink Delta)</button>
 
   <div id="error-box"></div>
 
@@ -320,31 +311,6 @@ function removeRow(btn) {
   }
 }
 
-function prefillDemo() {
-  document.getElementById('brand_name').value = 'Canabzy';
-  document.getElementById('client_website').value = 'https://canabzy.com';
-  document.getElementById('client_facebook').value = 'https://www.facebook.com/canntonics';
-  const rows = document.getElementById('competitor-rows');
-  rows.innerHTML = '';
-  rowCount = 0;
-  const comps = [
-    'https://www.facebook.com/profile.php?id=61576426096227',
-    'https://www.facebook.com/profile.php?id=61585619150431',
-  ];
-  comps.forEach((url, i) => {
-    rowCount++;
-    const div = document.createElement('div');
-    div.className = 'comp-row';
-    div.innerHTML = `
-      <span class="label-badge">C${i+1}</span>
-      <input type="text" value="${url}">
-      <button type="button" class="remove-btn" onclick="removeRow(this)">×</button>
-    `;
-    rows.appendChild(div);
-  });
-  document.getElementById('brand_voice').value = 'Direct, witty, and wellness-curious. We speak to adults who want to feel good without the hangover. Short punchy sentences. Slightly irreverent. Never preachy or clinical.';
-  document.querySelector('input[name=max_ads][value="25"]').checked = true;
-}
 
 function setStep(n, done=false) {
   for (let i = 1; i <= 4; i++) {
