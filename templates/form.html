@@ -144,6 +144,25 @@
   .step.done .step-num::after { content:'✓' }
   .step.active { color:var(--dark) }
   .step.done { color:var(--teal-dark) }
+  /* ── Progress bar ── */
+  .pbar-wrap {
+    padding:12px 24px 0; background:var(--card);
+  }
+  .pbar-labels {
+    display:flex; justify-content:space-between;
+    font-size:.75rem; color:var(--light); margin-bottom:6px;
+  }
+  .pbar-labels .elapsed { color:var(--teal-dark); font-weight:700 }
+  .pbar-track {
+    height:6px; background:var(--border); border-radius:99px; overflow:hidden;
+  }
+  .pbar-fill {
+    height:100%; background:var(--teal); border-radius:99px;
+    transition:width .6s ease; width:0%;
+  }
+  .pbar-hint {
+    font-size:.73rem; color:var(--light); margin-top:5px; margin-bottom:10px;
+  }
   .log-area {
     padding:16px 24px; max-height:200px; overflow-y:auto;
     font-family:monospace; font-size:.8rem; color:var(--mid);
@@ -197,6 +216,14 @@
       <div class="step" id="step-2"><div class="step-num">2</div>Download Media</div>
       <div class="step" id="step-3"><div class="step-num">3</div>Gemini Analysis</div>
       <div class="step" id="step-4"><div class="step-num">4</div>Generate Report</div>
+    </div>
+    <div class="pbar-wrap">
+      <div class="pbar-labels">
+        <span id="pbar-step-label">Starting...</span>
+        <span class="elapsed" id="elapsed">0:00</span>
+      </div>
+      <div class="pbar-track"><div class="pbar-fill" id="pbar-fill"></div></div>
+      <div class="pbar-hint" id="pbar-hint">Typical run: 3–8 min depending on ad count</div>
     </div>
     <div class="log-area" id="log-area"></div>
   </div>
@@ -312,6 +339,37 @@ function removeRow(btn) {
 }
 
 
+const STEP_HINTS = [
+  '', // 0 unused
+  'Step 1/4 — Fetching ads from Meta Ad Library...',
+  'Step 2/4 — Downloading images...',
+  'Step 3/4 — Analyzing each ad with Gemini AI... (this takes a while)',
+  'Step 4/4 — Synthesizing report with Claude...',
+];
+const STEP_PCT = [0, 10, 30, 60, 88];
+
+let _timerInterval = null;
+let _startTime = null;
+
+function startTimer() {
+  _startTime = Date.now();
+  _timerInterval = setInterval(() => {
+    const s = Math.floor((Date.now() - _startTime) / 1000);
+    const m = Math.floor(s / 60);
+    const ss = String(s % 60).padStart(2, '0');
+    document.getElementById('elapsed').textContent = `${m}:${ss}`;
+  }, 1000);
+}
+
+function stopTimer() {
+  if (_timerInterval) clearInterval(_timerInterval);
+}
+
+function setProgress(pct, hint) {
+  document.getElementById('pbar-fill').style.width = pct + '%';
+  if (hint) document.getElementById('pbar-hint').textContent = hint;
+}
+
 function setStep(n, done=false) {
   for (let i = 1; i <= 4; i++) {
     const el = document.getElementById(`step-${i}`);
@@ -319,6 +377,10 @@ function setStep(n, done=false) {
     if (i < n || (i === n && done)) el.classList.add('done');
     else if (i === n) el.classList.add('active');
   }
+  const pct = done ? STEP_PCT[Math.min(n+1, 4)] : STEP_PCT[n];
+  const hint = done && n === 4 ? '✓ All done!' : STEP_HINTS[n];
+  document.getElementById('pbar-step-label').textContent = hint || '';
+  setProgress(pct, hint);
 }
 
 function addLog(msg, type='normal') {
@@ -358,6 +420,8 @@ async function submitForm(e) {
   document.getElementById('main-form').style.display = 'none';
   document.getElementById('progress-title').textContent =
     `Running pipeline for ${payload.brand_name || 'your brand'}...`;
+  startTimer();
+  setProgress(5, 'Starting pipeline...');
 
   // Start job
   const res = await fetch('/run', {
@@ -379,12 +443,16 @@ async function submitForm(e) {
     }
     if (d.status === 'done') {
       sse.close();
+      stopTimer();
       setStep(4, true);
+      setProgress(100, '✓ Done! Opening your report...');
       document.getElementById('progress-title').textContent = '✓ Report ready! Opening...';
       setTimeout(() => { window.location.href = `/report/${job_id}`; }, 800);
     }
     if (d.status === 'error') {
       sse.close();
+      stopTimer();
+      setProgress(0, '');
       document.getElementById('progress-title').textContent = 'Pipeline failed';
     }
   };
