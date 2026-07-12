@@ -10,28 +10,81 @@ def _get_token() -> str:
     return os.environ["META_ACCESS_TOKEN"]
 
 
-def _page_id_from_url(url: str, token: str) -> str:
-    """Resolve a Facebook page URL or profile URL to its numeric page ID."""
-    # Already a numeric ID in profile.php?id=xxxx
+_FB_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+_PAGE_ID_PATTERNS = [
+    r'"pageID"\s*:\s*"?(\d+)"?',
+    r'"page_id"\s*:\s*"?(\d+)"?',
+    r'fb://page/(\d+)',
+    r'"entity_id"\s*:\s*"(\d+)"',
+    r'content="fb://page/\?id=(\d+)"',
+]
+
+
+def _page_id_from_html(fb_url: str) -> str | None:
+    """Extract numeric page ID from Facebook page HTML — no API permissions needed."""
+    try:
+        resp = requests.get(fb_url, headers=_FB_HEADERS, timeout=15)
+        html = resp.text
+        for pat in _PAGE_ID_PATTERNS:
+            m = re.search(pat, html)
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+    return None
+
+
+def _slug_from_url(url: str) -> str:
+    """Extract the page slug (last path segment) from a Facebook URL."""
+    path = url.rstrip('/').split('facebook.com/')[-1]
+    return re.split(r'[/?#]', path)[0]
+
+
+def _page_id_from_url(url: str, token: str) -> tuple[str | None, str]:
+    """
+    Return (page_id, slug). page_id may be None if resolution fails —
+    caller should fall back to search_terms using the slug.
+    """
+    # Numeric ID already in URL (profile.php?id=xxx)
     m = re.search(r'[?&]id=(\d+)', url)
     if m:
-        return m.group(1)
+        return m.group(1), ""
 
-    # Extract the last path segment as the page slug
-    slug = re.split(r'[/?#]', url.rstrip('/').split('facebook.com/')[-1])[0]
+    slug = _slug_from_url(url)
     if not slug:
-        raise ValueError(f"Cannot extract page slug from URL: {url}")
+        raise ValueError(f"Cannot parse Facebook URL: {url}")
 
-    resp = requests.get(
-        f"{_BASE}/{slug}",
-        params={"fields": "id,name", "access_token": token},
-        timeout=15,
-    )
-    data = resp.json()
-    if "id" in data:
-        print(f"[META API] Resolved '{slug}' → page ID {data['id']} ({data.get('name','')})")
-        return data["id"]
-    raise ValueError(f"Could not resolve page ID for '{slug}': {data.get('error', data)}")
+    # Try scraping page HTML for the numeric ID
+    page_id = _page_id_from_html(url if "facebook.com" in url else f"https://www.facebook.com/{slug}")
+    if page_id:
+        print(f"[META API] HTML-resolved '{slug}' → page ID {page_id}")
+        return page_id, slug
+
+    # Try Graph API (works only if app has pages_read_engagement)
+    try:
+        resp = requests.get(
+            f"{_BASE}/{slug}",
+            params={"fields": "id,name", "access_token": token},
+            timeout=15,
+        )
+        data = resp.json()
+        if "id" in data:
+            print(f"[META API] Graph-resolved '{slug}' → page ID {data['id']}")
+            return data["id"], slug
+    except Exception:
+        pass
+
+    # Fall back — caller will use search_terms instead
+    print(f"[META API] Could not resolve page ID for '{slug}', will search by name")
+    return None, slug
 
 
 def _extract_image_from_snapshot(snapshot_url: str) -> str | None:
@@ -52,13 +105,16 @@ def _extract_image_from_snapshot(snapshot_url: str) -> str | None:
     return None
 
 
-def _fetch_page_ads(page_id: str, token: str, max_ads: int, countries: list[str]) -> list[dict]:
-    """Call ads_archive for one page, paginating until max_ads reached."""
+def _fetch_ads(token: str, max_ads: int, countries: list[str],
+               page_id: str | None = None, search_terms: str | None = None) -> list[dict]:
+    """Call ads_archive by page_id or search_terms, paginating until max_ads."""
+    if not page_id and not search_terms:
+        raise ValueError("Need page_id or search_terms")
+
     ads: list[dict] = []
     params: dict = {
         "access_token": token,
         "ad_reached_countries": str(countries).replace("'", '"'),
-        "search_page_ids": page_id,
         "fields": ",".join([
             "id", "page_name", "page_id",
             "ad_creative_bodies",
@@ -72,6 +128,10 @@ def _fetch_page_ads(page_id: str, token: str, max_ads: int, countries: list[str]
         ]),
         "limit": min(max_ads, 100),
     }
+    if page_id:
+        params["search_page_ids"] = page_id
+    else:
+        params["search_terms"] = search_terms
 
     while len(ads) < max_ads:
         resp = requests.get(f"{_BASE}/ads_archive", params=params, timeout=30)
@@ -151,16 +211,21 @@ def scrape_meta_ads(
     for url in page_urls:
         print(f"[META API] Resolving {url} ...")
         try:
-            page_id = _page_id_from_url(url, token)
+            page_id, slug = _page_id_from_url(url, token)
         except Exception as exc:
-            msg = f"Could not resolve page ID for {url}: {exc}"
+            msg = f"Cannot parse URL {url}: {exc}"
             print(f"[META API] {msg}")
             errors.append(msg)
             continue
 
-        print(f"[META API] Fetching ads for page {page_id} ...")
+        label = f"page {page_id}" if page_id else f"search '{slug}'"
+        print(f"[META API] Fetching ads for {label} ...")
         try:
-            raw_ads = _fetch_page_ads(page_id, token, max_ads, countries)
+            raw_ads = _fetch_ads(
+                token, max_ads, countries,
+                page_id=page_id,
+                search_terms=slug if not page_id else None,
+            )
         except Exception as exc:
             msg = f"API error for {url}: {exc}"
             print(f"[META API] {msg}")
