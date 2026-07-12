@@ -101,7 +101,10 @@ def run_pipeline(job_id, page_urls, max_ads, brand_name, brand_voice, base_dir):
         upd(f"✓ {downloaded}/{len(ads)} files downloaded", 2)
 
         upd("Analyzing ads with Gemini 2.5 Flash...", 3)
-        ads = analyze_ads_gemini(ads, base_dir=base_dir)
+        ads = analyze_ads_gemini(
+            ads, base_dir=base_dir,
+            progress_cb=lambda msg: upd(msg, 3),
+        )
         analyzed = sum(1 for a in ads if a.get("analysisPath"))
         upd(f"✓ {analyzed}/{len(ads)} ads analyzed", 3)
 
@@ -180,6 +183,7 @@ def progress(job_id):
     def stream():
         seen = 0
         not_found_count = 0
+        last_ping = time.time()
         while True:
             job = _load_job(job_id)
             if not job:
@@ -196,6 +200,10 @@ def progress(job_id):
             if job["status"] in ("done", "error"):
                 yield f"data: {json.dumps({'status': job['status'], 'job_id': job_id})}\n\n"
                 break
+            # Keepalive ping every 10s — prevents Render free tier from sleeping
+            if time.time() - last_ping > 10:
+                yield ": ping\n\n"
+                last_ping = time.time()
             time.sleep(1)
 
     return Response(stream(), mimetype="text/event-stream",

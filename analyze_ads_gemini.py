@@ -10,7 +10,10 @@ ANALYSES_DIR = "analyses"
 MODEL = "gemini-2.5-flash"
 
 def _get_client():
-    return genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    return genai.Client(
+        api_key=os.environ["GEMINI_API_KEY"],
+        http_options=types.HttpOptions(timeout=120_000),  # 2 min timeout per call
+    )
 
 
 def _analysis_prompt(ad: dict) -> str:
@@ -149,26 +152,34 @@ adCopy: |
 def analyze_ads_gemini(
     ads: list[dict],
     base_dir: str = ".",
+    progress_cb=None,
 ) -> list[dict]:
     """
     Analyze each ad with Gemini 2.5 Flash and save markdown reports.
 
     Args:
-        ads:      List of normalized ad dicts with 'localPath' set.
-        base_dir: Root directory for analyses/ folder.
+        ads:         List of normalized ad dicts with 'localPath' set.
+        base_dir:    Root directory for analyses/ folder.
+        progress_cb: Optional callable(msg) for live progress updates.
 
     Returns:
         Same list with 'analysisPath' key added (None on failure/skip).
     """
     analyses_dir = os.path.join(base_dir, ANALYSES_DIR)
+    total = len(ads)
 
-    for ad in ads:
+    def _progress(msg):
+        print(msg)
+        if progress_cb:
+            progress_cb(msg)
+
+    for idx, ad in enumerate(ads, 1):
         brand = (ad.get("pageName") or "unknown").replace(" ", "_")
         filename = f"{brand}_{ad.get('adArchiveId')}.md"
         dest = os.path.join(analyses_dir, filename)
 
         if os.path.exists(dest):
-            print(f"[SKIP] {filename} already exists")
+            _progress(f"[{idx}/{total}] Skipping {filename} (cached)")
             ad["analysisPath"] = dest
             continue
 
@@ -176,27 +187,27 @@ def analyze_ads_gemini(
         has_media  = local_path and os.path.exists(local_path)
 
         if not has_media and not ad.get("ad_copy_full") and not ad.get("body"):
-            print(f"[SKIP] {ad.get('adArchiveId')} — no media and no copy text")
+            _progress(f"[{idx}/{total}] Skipping {ad.get('adArchiveId')} — no content")
             ad["analysisPath"] = None
             continue
 
         try:
+            media_label = ad.get("media_type", "text").upper()
+            _progress(f"[{idx}/{total}] Analyzing {media_label} ad from {ad.get('pageName', '?')}...")
             if has_media:
-                print(f"[ANALYZE] {ad.get('media_type').upper()} — {filename}")
                 if ad.get("media_type") == "video":
                     analysis = _analyze_video(ad)
                 else:
                     analysis = _analyze_image(ad)
             else:
-                print(f"[ANALYZE] TEXT-ONLY — {filename}")
                 analysis = _analyze_text(ad)
 
             path = _write_analysis(ad, analysis, analyses_dir)
             ad["analysisPath"] = path
-            print(f"[DONE] Saved -> {path}")
+            _progress(f"[{idx}/{total}] ✓ Done")
 
         except Exception as e:
-            print(f"[ERROR] {ad.get('adArchiveId')}: {e}")
+            _progress(f"[{idx}/{total}] ERROR: {e}")
             ad["analysisPath"] = None
 
     return ads
