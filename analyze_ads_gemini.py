@@ -108,6 +108,22 @@ def _analyze_image(ad: dict) -> str:
     return response.text
 
 
+def _analyze_text(ad: dict) -> str:
+    client = _get_client()
+    copy = ad.get("ad_copy_full") or ad.get("body") or ""
+    prompt = (
+        _analysis_prompt(ad)
+        + f"\n\nAD COPY (full text — no visual media available):\n{copy}\n\n"
+        "Note: No visual media is available. Base your visual format and hook analysis "
+        "on the copy text, context clues, and any metadata provided."
+    )
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=[prompt],
+    )
+    return response.text
+
+
 def _write_analysis(ad: dict, analysis_text: str, analyses_dir: str) -> str:
     header = f"""---
 brand: {ad.get('pageName')}
@@ -157,17 +173,23 @@ def analyze_ads_gemini(
             continue
 
         local_path = ad.get("localPath")
-        if not local_path or not os.path.exists(local_path):
-            print(f"[SKIP] {ad.get('adArchiveId')} — no local media file")
+        has_media  = local_path and os.path.exists(local_path)
+
+        if not has_media and not ad.get("ad_copy_full") and not ad.get("body"):
+            print(f"[SKIP] {ad.get('adArchiveId')} — no media and no copy text")
             ad["analysisPath"] = None
             continue
 
         try:
-            print(f"[ANALYZE] {ad.get('media_type').upper()} — {filename}")
-            if ad.get("media_type") == "video":
-                analysis = _analyze_video(ad)
+            if has_media:
+                print(f"[ANALYZE] {ad.get('media_type').upper()} — {filename}")
+                if ad.get("media_type") == "video":
+                    analysis = _analyze_video(ad)
+                else:
+                    analysis = _analyze_image(ad)
             else:
-                analysis = _analyze_image(ad)
+                print(f"[ANALYZE] TEXT-ONLY — {filename}")
+                analysis = _analyze_text(ad)
 
             path = _write_analysis(ad, analysis, analyses_dir)
             ad["analysisPath"] = path
