@@ -9,8 +9,10 @@ import sys
 import json
 import time
 import uuid
+import glob
 import threading
 from functools import wraps
+from pathlib import Path
 
 from flask import Flask, render_template, request, jsonify, Response, send_file
 
@@ -22,7 +24,34 @@ from generate_visual_report import generate_visual_report
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
-jobs: dict[str, dict] = {}
+
+JOBS_ROOT = os.path.join(os.path.dirname(__file__), "jobs")
+
+
+# ── Disk-backed job state (survives server restarts) ─────────────────────────
+
+def _job_file(job_id: str) -> str:
+    return os.path.join(JOBS_ROOT, job_id, "job.json")
+
+
+def _save_job(job_id: str, state: dict):
+    Path(_job_file(job_id)).write_text(json.dumps(state), encoding="utf-8")
+
+
+def _load_job(job_id: str) -> dict | None:
+    p = _job_file(job_id)
+    if os.path.exists(p):
+        try:
+            return json.loads(Path(p).read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return None
+
+
+def _log(job_id: str, msg: str, step: int = None):
+    state = _load_job(job_id) or {"status": "running", "logs": [], "report_path": None}
+    state["logs"].append({"msg": msg, "step": step, "ts": time.time()})
+    _save_job(job_id, state)
 
 
 # ── Password protection ───────────────────────────────────────────────────────
@@ -35,7 +64,6 @@ def _check_auth(password: str) -> bool:
 def _auth_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        # Skip auth if no password set (local dev)
         if not os.environ.get("APP_PASSWORD"):
             return f(*args, **kwargs)
         auth = request.authorization
@@ -49,48 +77,57 @@ def _auth_required(f):
     return decorated
 
 
-def _log(job_id: str, msg: str, step: int = None):
-    jobs[job_id]["logs"].append({"msg": msg, "step": step, "ts": time.time()})
-
+# ── Pipeline ─────────────────────────────────────────────────────────────────
 
 def run_pipeline(job_id, page_urls, max_ads, brand_name, brand_voice, base_dir):
-    try:
-        jobs[job_id]["status"] = "running"
+    def upd(msg, step=None):
+        _log(job_id, msg, step)
 
-        _log(job_id, f"Scraping {len(page_urls)} page(s) — up to {max_ads} ads each...", 1)
+    try:
+        state = _load_job(job_id)
+        state["status"] = "running"
+        _save_job(job_id, state)
+
+        upd(f"Scraping {len(page_urls)} page(s) — up to {max_ads} ads each...", 1)
         ads = scrape_meta_ads(page_urls, max_ads=max_ads)
-        _log(job_id, f"✓ {len(ads)} ads returned", 1)
+        upd(f"✓ {len(ads)} ads returned", 1)
 
         if not ads:
             raise ValueError("No ads found. Check page URLs.")
 
-        _log(job_id, "Downloading media files...", 2)
+        upd("Downloading media files...", 2)
         ads = download_ad_media(ads, base_dir=base_dir)
         downloaded = sum(1 for a in ads if a.get("localPath"))
-        _log(job_id, f"✓ {downloaded}/{len(ads)} files downloaded", 2)
+        upd(f"✓ {downloaded}/{len(ads)} files downloaded", 2)
 
-        _log(job_id, "Analyzing ads with Gemini 2.5 Flash...", 3)
+        upd("Analyzing ads with Gemini 2.5 Flash...", 3)
         ads = analyze_ads_gemini(ads, base_dir=base_dir)
         analyzed = sum(1 for a in ads if a.get("analysisPath"))
-        _log(job_id, f"✓ {analyzed}/{len(ads)} ads analyzed", 3)
+        upd(f"✓ {analyzed}/{len(ads)} ads analyzed", 3)
 
-        _log(job_id, "Synthesizing intelligence report with Claude...", 4)
+        upd("Synthesizing intelligence report with Claude...", 4)
         report_path = generate_visual_report(
             ads=ads,
             base_dir=base_dir,
             brand_name=brand_name,
             brand_voice=brand_voice,
         )
-        _log(job_id, "✓ Report ready!", 4)
+        upd("✓ Report ready!", 4)
 
-        jobs[job_id]["status"] = "done"
-        jobs[job_id]["report_path"] = report_path
+        state = _load_job(job_id)
+        state["status"] = "done"
+        state["report_path"] = report_path
+        _save_job(job_id, state)
 
     except Exception as e:
-        _log(job_id, f"ERROR: {e}")
-        jobs[job_id]["status"] = "error"
-        jobs[job_id]["error"] = str(e)
+        upd(f"ERROR: {e}")
+        state = _load_job(job_id) or {}
+        state["status"] = "error"
+        state["error"] = str(e)
+        _save_job(job_id, state)
 
+
+# ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 @_auth_required
@@ -111,15 +148,16 @@ def run():
     if not urls:
         return jsonify({"error": "At least one Facebook page URL required"}), 400
 
-    base_dir = os.path.join(os.path.dirname(__file__), "jobs", job_id)
+    base_dir = os.path.join(JOBS_ROOT, job_id)
     os.makedirs(base_dir, exist_ok=True)
 
-    jobs[job_id] = {
+    initial_state = {
         "status": "pending",
         "logs": [],
         "report_path": None,
         "brand_name": data.get("brand_name", "Unknown"),
     }
+    _save_job(job_id, initial_state)
 
     threading.Thread(
         target=run_pipeline,
@@ -141,11 +179,17 @@ def run():
 def progress(job_id):
     def stream():
         seen = 0
+        not_found_count = 0
         while True:
-            job = jobs.get(job_id)
+            job = _load_job(job_id)
             if not job:
-                yield f"data: {json.dumps({'error': 'Job not found'})}\n\n"
-                break
+                not_found_count += 1
+                if not_found_count > 10:
+                    yield f"data: {json.dumps({'error': 'Job not found'})}\n\n"
+                    break
+                time.sleep(1)
+                continue
+            not_found_count = 0
             for entry in job["logs"][seen:]:
                 yield f"data: {json.dumps(entry)}\n\n"
             seen = len(job["logs"])
@@ -161,14 +205,19 @@ def progress(job_id):
 @app.route("/report/<job_id>")
 @_auth_required
 def report(job_id):
-    job = jobs.get(job_id)
+    job = _load_job(job_id)
     if not job:
         return "Job not found", 404
     if job["status"] == "error":
         return f"Pipeline failed: {job.get('error', 'Unknown error')}", 500
-    if not job.get("report_path"):
+    report_path = job.get("report_path")
+    if not report_path or not os.path.exists(report_path):
+        # Try to find the report file directly
+        matches = glob.glob(os.path.join(JOBS_ROOT, job_id, "output", "*.html"))
+        if matches:
+            return send_file(matches[0])
         return "Report not ready yet", 404
-    return send_file(job["report_path"])
+    return send_file(report_path)
 
 
 if __name__ == "__main__":
