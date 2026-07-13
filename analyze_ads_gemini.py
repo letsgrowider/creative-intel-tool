@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 
 ANALYSES_DIR = "analyses"
-MODEL = "gemini-1.5-flash"
+MODEL = "gemini-2.5-flash"
 
 def _get_client():
     return genai.Client(
@@ -81,12 +81,18 @@ def _upload_video(local_path: str) -> types.File:
     return uploaded
 
 
+_NO_THINK = types.GenerateContentConfig(
+    thinking_config=types.ThinkingConfig(thinking_budget=0)
+)
+
+
 def _analyze_video(ad: dict) -> str:
     client = _get_client()
     uploaded = _upload_video(ad["localPath"])
     try:
         response = client.models.generate_content(
             model=MODEL,
+            config=_NO_THINK,
             contents=[
                 types.Part.from_uri(file_uri=uploaded.uri, mime_type=uploaded.mime_type),
                 _analysis_prompt(ad),
@@ -103,6 +109,7 @@ def _analyze_image(ad: dict) -> str:
     mime = mimetypes.guess_type(ad["localPath"])[0] or "image/jpeg"
     response = client.models.generate_content(
         model=MODEL,
+        config=_NO_THINK,
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=mime),
             _analysis_prompt(ad),
@@ -122,6 +129,7 @@ def _analyze_text(ad: dict) -> str:
     )
     response = client.models.generate_content(
         model=MODEL,
+        config=_NO_THINK,
         contents=[prompt],
     )
     return response.text
