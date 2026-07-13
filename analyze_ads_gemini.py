@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 
 ANALYSES_DIR = "analyses"
-MODEL = "gemini-2.0-flash"
+MODEL = "gemini-1.5-flash"
 
 def _get_client():
     return genai.Client(
