@@ -7,12 +7,12 @@ from google import genai
 from google.genai import types
 
 ANALYSES_DIR = "analyses"
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-2.0-flash"
 
 def _get_client():
     return genai.Client(
         api_key=os.environ["GEMINI_API_KEY"],
-        http_options=types.HttpOptions(timeout=120_000),  # 2 min timeout per call
+        http_options=types.HttpOptions(timeout=60_000),  # 60s timeout per call
     )
 
 
