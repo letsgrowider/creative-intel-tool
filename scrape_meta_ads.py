@@ -10,104 +10,107 @@ def _get_token() -> str:
     return os.environ["META_ACCESS_TOKEN"]
 
 
-_FB_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "en-US,en;q=0.9",
-}
-
-_PAGE_ID_PATTERNS = [
-    r'"pageID"\s*:\s*"?(\d+)"?',
-    r'"page_id"\s*:\s*"?(\d+)"?',
-    r'fb://page/(\d+)',
-    r'"entity_id"\s*:\s*"(\d+)"',
-    r'content="fb://page/\?id=(\d+)"',
-]
-
-
-def _page_id_from_html(fb_url: str) -> str | None:
-    """Extract numeric page ID from Facebook page HTML — no API permissions needed."""
-    try:
-        resp = requests.get(fb_url, headers=_FB_HEADERS, timeout=15)
-        html = resp.text
-        for pat in _PAGE_ID_PATTERNS:
-            m = re.search(pat, html)
-            if m:
-                return m.group(1)
-    except Exception:
-        pass
-    return None
-
-
 def _slug_from_url(url: str) -> str:
-    """Extract the page slug (last path segment) from a Facebook URL."""
     path = url.rstrip('/').split('facebook.com/')[-1]
     return re.split(r'[/?#]', path)[0]
 
 
-def _page_id_from_url(url: str, token: str) -> tuple[str | None, str]:
+def _page_id_from_url(url: str) -> tuple[str | None, str]:
     """
-    Return (page_id, slug). page_id may be None if resolution fails —
-    caller should fall back to search_terms using the slug.
+    Return (page_id, slug).
+    - Numeric profile.php?id=xxx → page_id directly
+    - Slug-based → None, slug (caller resolves via _resolve_page_id)
     """
-    # Numeric ID already in URL (profile.php?id=xxx)
     m = re.search(r'[?&]id=(\d+)', url)
     if m:
         return m.group(1), ""
 
     slug = _slug_from_url(url)
     if not slug:
-        raise ValueError(f"Cannot parse Facebook URL: {url}")
+        raise ValueError(f"Cannot parse URL: {url}")
 
-    # Try scraping page HTML for the numeric ID
-    page_id = _page_id_from_html(url if "facebook.com" in url else f"https://www.facebook.com/{slug}")
-    if page_id:
-        print(f"[META API] HTML-resolved '{slug}' → page ID {page_id}")
-        return page_id, slug
-
-    # Try Graph API (works only if app has pages_read_engagement)
-    try:
-        resp = requests.get(
-            f"{_BASE}/{slug}",
-            params={"fields": "id,name", "access_token": token},
-            timeout=15,
-        )
-        data = resp.json()
-        if "id" in data:
-            print(f"[META API] Graph-resolved '{slug}' → page ID {data['id']}")
-            return data["id"], slug
-    except Exception:
-        pass
-
-    # Fall back — caller will use search_terms instead
-    print(f"[META API] Could not resolve page ID for '{slug}', will search by name")
     return None, slug
 
 
-def _extract_image_from_snapshot(snapshot_url: str) -> str | None:
-    """Parse the ad snapshot page for a CDN image URL."""
-    try:
-        resp = requests.get(snapshot_url, timeout=15)
-        html = resp.text
-        # og:image is most reliable
-        m = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', html)
-        if m:
-            return m.group(1).replace("&amp;", "&")
-        # fallback: fbcdn image tag
-        m = re.search(r'<img[^>]+src=["\']([^"\']*fbcdn\.net[^"\']+)["\']', html)
-        if m:
-            return m.group(1).replace("&amp;", "&")
-    except Exception:
-        pass
+def _slug_normalize(s: str) -> str:
+    """Lowercase, strip extensions and punctuation → compact string for matching."""
+    s = s.lower()
+    for ext in ('.in', '.com', '.net', '.org'):
+        s = s.replace(ext, '')
+    return re.sub(r'[^a-z0-9]', '', s)
+
+
+def _page_matches_slug(page_name: str, slug: str) -> bool:
+    """True if page_name and slug share substantial overlap when normalized."""
+    slug_n = _slug_normalize(slug)
+    name_n = _slug_normalize(page_name)
+    # direct containment (e.g. slug="axisbank", name="axisbank" or "axis bank")
+    if name_n and (slug_n in name_n or name_n in slug_n):
+        return True
+    # partial: slug without banking noise words matches start of page name
+    banking_words = ('bank', 'india', 'sfb', 'limited', 'ltd', 'finance')
+    slug_core = re.sub(r'(' + '|'.join(banking_words) + r')', '', slug_n)
+    if len(slug_core) >= 2 and name_n.startswith(slug_core):
+        # if the original slug mentioned 'bank', page must also be a bank
+        if 'bank' in slug_n and 'bank' not in name_n:
+            return False
+        return True
+    return False
+
+
+def _humanize_slug(slug: str) -> str:
+    """bandhanbank.in → 'Bandhan Bank', aubankindia → 'Au Bank India'"""
+    s = slug.lower()
+    for ext in ('.in', '.com', '.net', '.org'):
+        s = s.replace(ext, '')
+    s = re.sub(r'(bank|india|sfb|limited|ltd)', r' \1', s).strip()
+    return s.title()
+
+
+def _resolve_page_id(slug: str, token: str) -> str | None:
+    """
+    Two-pass: try multiple search terms derived from slug, find the ad-archive
+    page whose normalized name best matches the slug.
+    """
+    search_attempts = list(dict.fromkeys([slug, _humanize_slug(slug)]))
+
+    for term in search_attempts:
+        try:
+            resp = requests.get(
+                f"{_BASE}/ads_archive",
+                params={
+                    "access_token": token,
+                    "search_terms": term,
+                    "ad_reached_countries": '["IN","US","GB","AU"]',
+                    "fields": "id,page_name,page_id",
+                    "limit": 50,
+                },
+                timeout=30,
+            )
+            data = resp.json()
+            if "error" in data:
+                continue
+
+            candidates: dict[str, str] = {}
+            for ad in data.get("data", []):
+                pid = ad.get("page_id")
+                pname = ad.get("page_name") or ""
+                if pid and _page_matches_slug(pname, slug):
+                    candidates[pid] = pname
+
+            if candidates:
+                page_id, page_name = next(iter(candidates.items()))
+                print(f"[META API] Resolved '{slug}' → '{page_name}' (id={page_id})")
+                return page_id
+
+        except Exception as e:
+            print(f"[META API] resolution attempt '{term}' failed: {e}")
+
     return None
 
 
 def _fetch_ads(token: str, max_ads: int, countries: list[str],
                page_id: str | None = None, search_terms: str | None = None) -> list[dict]:
-    """Call ads_archive by page_id or search_terms, paginating until max_ads."""
     if not page_id and not search_terms:
         raise ValueError("Need page_id or search_terms")
 
@@ -124,7 +127,6 @@ def _fetch_ads(token: str, max_ads: int, countries: list[str],
             "ad_creative_link_url",
             "ad_delivery_start_time",
             "publisher_platforms",
-            "ad_snapshot_url",
         ]),
         "limit": min(max_ads, 100),
     }
@@ -152,7 +154,6 @@ def _fetch_ads(token: str, max_ads: int, countries: list[str],
 
 
 def _normalize(raw: dict) -> dict:
-    """Convert a raw ads_archive item to our standard ad dict."""
     bodies = raw.get("ad_creative_bodies") or []
     titles = raw.get("ad_creative_link_titles") or []
     descs  = raw.get("ad_creative_link_descriptions") or []
@@ -163,10 +164,6 @@ def _normalize(raw: dict) -> dict:
     desc  = descs[0]  if descs  else ""
     cap   = caps[0]   if caps   else ""
 
-    snapshot_url = raw.get("ad_snapshot_url", "")
-    media_url    = _extract_image_from_snapshot(snapshot_url) if snapshot_url else ""
-    media_type   = "image" if media_url else "text"
-
     return {
         "adArchiveId":       raw.get("id", ""),
         "pageName":          raw.get("page_name", ""),
@@ -176,9 +173,8 @@ def _normalize(raw: dict) -> dict:
         "ctaText":           cap,
         "title":             title,
         "linkUrl":           raw.get("ad_creative_link_url", ""),
-        "mediaUrl":          media_url,
-        "media_type":        media_type,
-        "snapshot_url":      snapshot_url,
+        "mediaUrl":          "",
+        "media_type":        "text",
         "ad_copy_full":      "\n".join(filter(None, [body, title, desc, cap])),
     }
 
@@ -188,18 +184,6 @@ def scrape_meta_ads(
     max_ads: int = 25,
     countries: list[str] | None = None,
 ) -> list[dict]:
-    """
-    Fetch ads for one or more Facebook pages via the Meta Ad Library API.
-
-    Args:
-        page_urls: List of Facebook page URLs (slug or profile.php?id=xxx).
-        max_ads:   Max ads to fetch per page.
-        countries: Country codes to filter by. Defaults to ["IN"].
-
-    Returns:
-        Normalised, deduplicated ad dicts sorted oldest-first.
-    """
-    # Broad default — catches ads running in any major market
     if countries is None:
         countries = ["IN", "US", "GB", "AU", "CA", "SG", "AE", "ZA"]
 
@@ -209,17 +193,21 @@ def scrape_meta_ads(
     errors:  list[str]  = []
 
     for url in page_urls:
-        print(f"[META API] Resolving {url} ...")
         try:
-            page_id, slug = _page_id_from_url(url, token)
+            page_id, slug = _page_id_from_url(url)
         except Exception as exc:
-            msg = f"Cannot parse URL {url}: {exc}"
-            print(f"[META API] {msg}")
-            errors.append(msg)
+            errors.append(str(exc))
             continue
 
-        label = f"page {page_id}" if page_id else f"search '{slug}'"
+        # For slug-based URLs, try to resolve to a page_id for exact results
+        if not page_id and slug:
+            resolved = _resolve_page_id(slug, token)
+            if resolved:
+                page_id = resolved
+
+        label = f"page ID {page_id}" if page_id else f"name '{slug}'"
         print(f"[META API] Fetching ads for {label} ...")
+
         try:
             raw_ads = _fetch_ads(
                 token, max_ads, countries,
@@ -232,17 +220,17 @@ def scrape_meta_ads(
             errors.append(msg)
             continue
 
-        print(f"[META API] {len(raw_ads)} ads — normalising & extracting media ...")
+        print(f"[META API] {len(raw_ads)} ads from {label}")
         for raw in raw_ads:
             ad_id = raw.get("id", "")
             if ad_id in seen:
                 continue
             seen.add(ad_id)
             all_ads.append(_normalize(raw))
-            time.sleep(0.15)
 
     all_ads.sort(key=lambda a: a.get("startDate") or "")
     print(f"[META API] Done — {len(all_ads)} unique ads total")
+
     if not all_ads and errors:
         raise RuntimeError("No ads found. Errors:\n" + "\n".join(errors))
     return all_ads

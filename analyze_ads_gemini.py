@@ -177,9 +177,10 @@ def analyze_ads_gemini(
     total = len(ads)
 
     def _progress(msg):
-        print(msg)
         if progress_cb:
             progress_cb(msg)
+        else:
+            print(msg)
 
     for idx, ad in enumerate(ads, 1):
         brand = (ad.get("pageName") or "unknown").replace(" ", "_")
