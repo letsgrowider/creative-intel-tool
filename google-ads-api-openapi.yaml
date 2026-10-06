@@ -1,0 +1,175 @@
+openapi: 3.0.0
+info:
+  title: Google Ads Audit API
+  description: Campaign analysis and optimization for Growider MCC (10 accounts, 476 campaigns)
+  version: 1.0.0
+  contact:
+    name: Growider Team
+
+servers:
+  - url: https://google-ads-api-tmpz.onrender.com
+    description: Production API (Render)
+
+paths:
+  /skills/analyze/search:
+    get:
+      summary: Search campaigns
+      description: Filter campaigns by name, account, spend, or ROAS threshold
+      operationId: searchCampaigns
+      parameters:
+        - name: query
+          in: query
+          description: Campaign name search
+          schema:
+            type: string
+        - name: account
+          in: query
+          description: Filter by account name
+          schema:
+            type: string
+        - name: min_spend
+          in: query
+          description: Minimum spend threshold
+          schema:
+            type: number
+            default: 0
+        - name: max_roas
+          in: query
+          description: Maximum ROAS threshold (campaigns below this)
+          schema:
+            type: number
+            default: 999
+        - name: limit
+          in: query
+          description: Max results to return
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Campaign search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        campaign_name:
+                          type: string
+                        account_name:
+                          type: string
+                        cost:
+                          type: number
+                        roas:
+                          type: number
+                        conversions:
+                          type: integer
+
+  /skills/audit/account-health:
+    get:
+      summary: Account health score
+      description: Get account health score (0-100) and identify issues
+      operationId: accountHealth
+      parameters:
+        - name: account
+          in: query
+          description: Filter by specific account (optional)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account health report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  health_report:
+                    type: string
+
+  /skills/optimize/recommendations:
+    get:
+      summary: Optimization recommendations
+      description: Get recommendations for underperforming campaigns
+      operationId: optimizationRecommendations
+      parameters:
+        - name: account
+          in: query
+          description: Filter by specific account (optional)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Optimization recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendations:
+                    type: string
+
+  /skills/analytics/account-summary:
+    get:
+      summary: Account performance summary
+      description: Get account-level performance rankings and metrics
+      operationId: accountSummary
+      parameters:
+        - name: account
+          in: query
+          description: Filter by specific account (optional)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account performance summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: string
+
+  /refresh:
+    post:
+      summary: Refresh campaign data
+      description: Manually refresh campaign data from Google Ads API (pulls live data)
+      operationId: refreshData
+      responses:
+        '200':
+          description: Refresh status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success, error]
+                  message:
+                    type: string
+
+  /health:
+    get:
+      summary: Health check
+      description: Check API health status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  campaigns_loaded:
+                    type: integer
+                  accounts:
+                    type: integer
