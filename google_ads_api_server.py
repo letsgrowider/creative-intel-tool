@@ -382,6 +382,19 @@ async def refresh_data():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/skills/details/united-car-report")
+async def united_car_report():
+    """Get detailed United Car Rental report with search terms + demographics (August)."""
+    try:
+        uc_file = Path(__file__).parent / "united_car_detailed.json"
+        if uc_file.exists():
+            data = json.loads(uc_file.read_text())
+            return data
+        else:
+            return {"error": "Report not found"}
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/")
 async def root():
     """API documentation."""
