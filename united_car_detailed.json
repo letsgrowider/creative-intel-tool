@@ -1,0 +1,575 @@
+{
+  "total_accounts": 1,
+  "total_campaigns": 1,
+  "summary": {
+    "total_cost_usd": 456.03,
+    "total_conversions": 3,
+    "total_value": 456.03,
+    "avg_cpa": 152.01,
+    "roas": 1.0
+  },
+  "campaigns": [
+    {
+      "campaign_id": "search_-_top_3_terms_-_is",
+      "campaign_name": "Search - top 3 terms - IS",
+      "account_id": "257-130-9613",
+      "account_name": "United Car Rental",
+      "impressions": 3946,
+      "clicks": 404,
+      "cost": 456.03,
+      "conversions": 3,
+      "value": 456.03,
+      "cpa": 152.01,
+      "roas": 152.01,
+      "search_terms": [
+        {
+          "search_term": "curacao car rental",
+          "clicks": 28,
+          "impressions": 604,
+          "ctr": 4.64,
+          "avg_cpc": 3.5,
+          "cost": 97.86,
+          "conversions": 2,
+          "cpa": 48.93
+        },
+        {
+          "search_term": "curacao rental cars",
+          "clicks": 6,
+          "impressions": 145,
+          "ctr": 4.14,
+          "avg_cpc": 6.17,
+          "cost": 37.0,
+          "conversions": 2,
+          "cpa": 18.5
+        },
+        {
+          "search_term": "united car rental curacao",
+          "clicks": 29,
+          "impressions": 67,
+          "ctr": 43.28,
+          "avg_cpc": 0.76,
+          "cost": 22.17,
+          "conversions": 2,
+          "cpa": 11.09
+        },
+        {
+          "search_term": "car rental curacao",
+          "clicks": 64,
+          "impressions": 837,
+          "ctr": 7.65,
+          "avg_cpc": 2.91,
+          "cost": 186.39,
+          "conversions": 1,
+          "cpa": 186.39
+        },
+        {
+          "search_term": "curacao rent a car",
+          "clicks": 4,
+          "impressions": 17,
+          "ctr": 23.53,
+          "avg_cpc": 5.4,
+          "cost": 21.61,
+          "conversions": 1,
+          "cpa": 21.61
+        },
+        {
+          "search_term": "curacao rental car airport",
+          "clicks": 1,
+          "impressions": 18,
+          "ctr": 5.56,
+          "avg_cpc": 19.17,
+          "cost": 19.17,
+          "conversions": 1,
+          "cpa": 19.17
+        },
+        {
+          "search_term": "jeep rental curacao",
+          "clicks": 2,
+          "impressions": 47,
+          "ctr": 4.26,
+          "avg_cpc": 1.0,
+          "cost": 1.99,
+          "conversions": 1,
+          "cpa": 1.99
+        },
+        {
+          "search_term": "rental car curacao",
+          "clicks": 9,
+          "impressions": 152,
+          "ctr": 5.92,
+          "avg_cpc": 2.53,
+          "cost": 22.73,
+          "conversions": 1,
+          "cpa": 22.73
+        },
+        {
+          "search_term": "rental cars curacao",
+          "clicks": 6,
+          "impressions": 137,
+          "ctr": 4.38,
+          "avg_cpc": 3.86,
+          "cost": 23.17,
+          "conversions": 1,
+          "cpa": 23.17
+        },
+        {
+          "search_term": "123 car rental curacao",
+          "clicks": 0,
+          "impressions": 1,
+          "ctr": 0.0,
+          "avg_cpc": 0.0,
+          "cost": 0.0,
+          "conversions": 0,
+          "cpa": 0.0
+        }
+      ],
+      "demographics": {
+        "age": [
+          {
+            "age_range": "Unknown",
+            "clicks": 249,
+            "impressions": 4072,
+            "ctr": 6.11,
+            "avg_cpc": 2.46,
+            "cost": 612.65,
+            "conversions": 6,
+            "cpa": 102.11
+          },
+          {
+            "age_range": "25-34",
+            "clicks": 174,
+            "impressions": 2073,
+            "ctr": 8.39,
+            "avg_cpc": 2.06,
+            "cost": 357.86,
+            "conversions": 5,
+            "cpa": 71.57
+          },
+          {
+            "age_range": "35-44",
+            "clicks": 175,
+            "impressions": 2212,
+            "ctr": 7.91,
+            "avg_cpc": 2.09,
+            "cost": 366.5,
+            "conversions": 4,
+            "cpa": 91.62
+          },
+          {
+            "age_range": "45-54",
+            "clicks": 134,
+            "impressions": 2029,
+            "ctr": 6.6,
+            "avg_cpc": 2.5,
+            "cost": 334.35,
+            "conversions": 3,
+            "cpa": 111.45
+          },
+          {
+            "age_range": "55-64",
+            "clicks": 77,
+            "impressions": 1188,
+            "ctr": 6.48,
+            "avg_cpc": 2.27,
+            "cost": 174.82,
+            "conversions": 1,
+            "cpa": 174.82
+          },
+          {
+            "age_range": "18-24",
+            "clicks": 39,
+            "impressions": 422,
+            "ctr": 9.24,
+            "avg_cpc": 1.25,
+            "cost": 48.87,
+            "conversions": 0,
+            "cpa": 0.0
+          },
+          {
+            "age_range": ">64",
+            "clicks": 47,
+            "impressions": 517,
+            "ctr": 9.09,
+            "avg_cpc": 1.78,
+            "cost": 83.58,
+            "conversions": 0,
+            "cpa": 0.0
+          },
+          {
+            "age_range": "Daily Performance",
+            "clicks": 0,
+            "impressions": 0,
+            "ctr": 0,
+            "avg_cpc": 0,
+            "cost": 0,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-05",
+            "clicks": 63,
+            "impressions": 1555,
+            "ctr": 4.05,
+            "avg_cpc": 1.94,
+            "cost": 122.14,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-04",
+            "clicks": 62,
+            "impressions": 1943,
+            "ctr": 3.19,
+            "avg_cpc": 0.94,
+            "cost": 58.53,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-09",
+            "clicks": 61,
+            "impressions": 1772,
+            "ctr": 3.44,
+            "avg_cpc": 1.44,
+            "cost": 87.76,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-10",
+            "clicks": 61,
+            "impressions": 2158,
+            "ctr": 2.83,
+            "avg_cpc": 1.31,
+            "cost": 79.79,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-15",
+            "clicks": 59,
+            "impressions": 1628,
+            "ctr": 3.62,
+            "avg_cpc": 1.24,
+            "cost": 73.37,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-17",
+            "clicks": 58,
+            "impressions": 1747,
+            "ctr": 3.32,
+            "avg_cpc": 1.25,
+            "cost": 72.44,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-14",
+            "clicks": 57,
+            "impressions": 1879,
+            "ctr": 3.03,
+            "avg_cpc": 1.4,
+            "cost": 79.59,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-11",
+            "clicks": 56,
+            "impressions": 2204,
+            "ctr": 2.54,
+            "avg_cpc": 1.41,
+            "cost": 78.87,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-08",
+            "clicks": 52,
+            "impressions": 1992,
+            "ctr": 2.61,
+            "avg_cpc": 2.25,
+            "cost": 117.15,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-16",
+            "clicks": 52,
+            "impressions": 1728,
+            "ctr": 3.01,
+            "avg_cpc": 1.47,
+            "cost": 76.41,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-07",
+            "clicks": 51,
+            "impressions": 1677,
+            "ctr": 3.04,
+            "avg_cpc": 1.94,
+            "cost": 99.06,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-12",
+            "clicks": 50,
+            "impressions": 1750,
+            "ctr": 2.86,
+            "avg_cpc": 1.19,
+            "cost": 59.49,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-22",
+            "clicks": 50,
+            "impressions": 1319,
+            "ctr": 3.79,
+            "avg_cpc": 2.13,
+            "cost": 106.66,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-06",
+            "clicks": 47,
+            "impressions": 2093,
+            "ctr": 2.25,
+            "avg_cpc": 1.28,
+            "cost": 60.39,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-18",
+            "clicks": 47,
+            "impressions": 1842,
+            "ctr": 2.55,
+            "avg_cpc": 1.38,
+            "cost": 64.75,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-19",
+            "clicks": 47,
+            "impressions": 1871,
+            "ctr": 2.51,
+            "avg_cpc": 1.07,
+            "cost": 50.13,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-13",
+            "clicks": 46,
+            "impressions": 1959,
+            "ctr": 2.35,
+            "avg_cpc": 2.35,
+            "cost": 108.19,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-26",
+            "clicks": 45,
+            "impressions": 1155,
+            "ctr": 3.9,
+            "avg_cpc": 1.47,
+            "cost": 66.25,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-24",
+            "clicks": 44,
+            "impressions": 1202,
+            "ctr": 3.66,
+            "avg_cpc": 1.57,
+            "cost": 68.99,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-20",
+            "clicks": 43,
+            "impressions": 1088,
+            "ctr": 3.95,
+            "avg_cpc": 1.83,
+            "cost": 78.49,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-21",
+            "clicks": 39,
+            "impressions": 1625,
+            "ctr": 2.4,
+            "avg_cpc": 1.35,
+            "cost": 52.72,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-27",
+            "clicks": 39,
+            "impressions": 894,
+            "ctr": 4.36,
+            "avg_cpc": 1.75,
+            "cost": 68.2,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-02",
+            "clicks": 38,
+            "impressions": 1401,
+            "ctr": 2.71,
+            "avg_cpc": 0.87,
+            "cost": 32.96,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-03",
+            "clicks": 38,
+            "impressions": 1932,
+            "ctr": 1.97,
+            "avg_cpc": 1.21,
+            "cost": 46.06,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-23",
+            "clicks": 38,
+            "impressions": 1296,
+            "ctr": 2.93,
+            "avg_cpc": 1.82,
+            "cost": 69.2,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-01",
+            "clicks": 36,
+            "impressions": 1345,
+            "ctr": 2.68,
+            "avg_cpc": 0.92,
+            "cost": 33.0,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-30",
+            "clicks": 33,
+            "impressions": 730,
+            "ctr": 4.52,
+            "avg_cpc": 1.51,
+            "cost": 49.95,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-25",
+            "clicks": 30,
+            "impressions": 1076,
+            "ctr": 2.79,
+            "avg_cpc": 0.73,
+            "cost": 21.88,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-31",
+            "clicks": 29,
+            "impressions": 677,
+            "ctr": 4.28,
+            "avg_cpc": 1.93,
+            "cost": 55.83,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-28",
+            "clicks": 27,
+            "impressions": 973,
+            "ctr": 2.77,
+            "avg_cpc": 1.07,
+            "cost": 28.91,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-08-29",
+            "clicks": 27,
+            "impressions": 620,
+            "ctr": 4.35,
+            "avg_cpc": 2.42,
+            "cost": 65.32,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "2026-05-17",
+            "clicks": 69,
+            "impressions": 2306,
+            "ctr": 2.99,
+            "avg_cpc": 0.55,
+            "cost": 38.21,
+            "conversions": 0,
+            "cpa": 0
+          },
+          {
+            "age_range": "Auction insights report",
+            "clicks": 0,
+            "impressions": 0,
+            "ctr": 0,
+            "avg_cpc": 0,
+            "cost": 0,
+            "conversions": 0,
+            "cpa": 0
+          }
+        ],
+        "gender": [
+          {
+            "gender": "Male",
+            "clicks": 377,
+            "impressions": 4071,
+            "ctr": 9.26,
+            "avg_cpc": 2.2,
+            "cost": 830.83,
+            "conversions": 8,
+            "cpa": 103.85
+          },
+          {
+            "gender": "Unknown",
+            "clicks": 250,
+            "impressions": 4049,
+            "ctr": 6.17,
+            "avg_cpc": 2.44,
+            "cost": 611.22,
+            "conversions": 6,
+            "cpa": 101.87
+          },
+          {
+            "gender": "Female",
+            "clicks": 268,
+            "impressions": 4393,
+            "ctr": 6.1,
+            "avg_cpc": 2.0,
+            "cost": 536.57,
+            "conversions": 5,
+            "cpa": 107.31
+          }
+        ]
+      }
+    }
+  ],
+  "month": "August 2026"
+}
