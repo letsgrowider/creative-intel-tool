@@ -1,118 +1,141 @@
 #!/usr/bin/env python3
 """
-Google Ads API MCP Server - HTTP wrapper for the deployed FastAPI service.
-Exposes REST endpoints as MCP tools for Claude Chat integration.
+Google Ads API MCP Server - HTTP wrapper for deployed FastAPI service.
+Exposes REST endpoints as MCP tools for Claude Chat.
 """
 
+import asyncio
 import httpx
 import json
-from typing import Any
 from mcp.server import Server
-from mcp.types import Tool, TextContent, ToolResult
+from mcp.server.stdio import stdio_server
+from mcp.types import Tool, TextContent
 
-# API base URL (update to your Render deployment)
+# API base URL
 API_BASE = "https://google-ads-api-tmpz.onrender.com"
 
 server = Server("google-ads-api-http")
 
-async def call_api(endpoint: str, params: dict = None) -> dict:
-    """Call the HTTP API and return JSON response."""
+# Define available tools
+TOOLS = [
+    Tool(
+        name="search_campaigns",
+        description="Search campaigns by name, account, spend, or ROAS threshold",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Campaign name search"},
+                "account": {"type": "string", "description": "Filter by account"},
+                "min_spend": {"type": "number", "description": "Minimum spend"},
+                "max_roas": {"type": "number", "description": "Maximum ROAS threshold"}
+            }
+        }
+    ),
+    Tool(
+        name="account_health",
+        description="Get account health score (0-100) and identify issues",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "account": {"type": "string", "description": "Filter by account (optional)"}
+            }
+        }
+    ),
+    Tool(
+        name="optimization_recommendations",
+        description="Get optimization recommendations for underperforming campaigns",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "account": {"type": "string", "description": "Filter by account (optional)"}
+            }
+        }
+    ),
+    Tool(
+        name="account_summary",
+        description="Get performance summary for account(s)",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "account": {"type": "string", "description": "Filter by account (optional)"}
+            }
+        }
+    ),
+    Tool(
+        name="refresh_data",
+        description="Manually refresh campaign data from Google Ads API (live query)",
+        inputSchema={"type": "object", "properties": {}}
+    ),
+    Tool(
+        name="health_check",
+        description="Check API health status",
+        inputSchema={"type": "object", "properties": {}}
+    )
+]
+
+@server.list_tools()
+async def list_tools():
+    """List available tools."""
+    return TOOLS
+
+async def call_api(endpoint: str, params: dict = None) -> str:
+    """Call the HTTP API and return response text."""
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             url = f"{API_BASE}{endpoint}"
             response = await client.get(url, params=params)
             response.raise_for_status()
-            return response.json()
+            return json.dumps(response.json(), indent=2)
     except Exception as e:
-        return {"error": str(e)}
+        return f"Error: {e}"
 
 @server.call_tool()
-async def search_campaigns(query: str = "", account: str = "", min_spend: float = 0, max_roas: float = 999):
-    """Search campaigns by name, account, spend, or ROAS threshold."""
-    params = {
-        "query": query,
-        "account": account,
-        "min_spend": min_spend,
-        "max_roas": max_roas
-    }
-    result = await call_api("/skills/analyze/search", params)
+async def tool_call(name: str, arguments: dict):
+    """Handle tool calls."""
+    result_text = ""
 
-    if "error" in result:
-        text = f"Error: {result['error']}"
+    if name == "search_campaigns":
+        params = {
+            "query": arguments.get("query", ""),
+            "account": arguments.get("account", ""),
+            "min_spend": arguments.get("min_spend", 0),
+            "max_roas": arguments.get("max_roas", 999)
+        }
+        result_text = await call_api("/skills/analyze/search", params)
+
+    elif name == "account_health":
+        params = {"account": arguments.get("account", "")} if arguments.get("account") else {}
+        result_text = await call_api("/skills/audit/account-health", params)
+
+    elif name == "optimization_recommendations":
+        params = {"account": arguments.get("account", "")} if arguments.get("account") else {}
+        result_text = await call_api("/skills/optimize/recommendations", params)
+
+    elif name == "account_summary":
+        params = {"account": arguments.get("account", "")} if arguments.get("account") else {}
+        result_text = await call_api("/skills/analytics/account-summary", params)
+
+    elif name == "refresh_data":
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(f"{API_BASE}/refresh")
+                response.raise_for_status()
+                result_text = f"✅ Data refreshed: {json.dumps(response.json(), indent=2)}"
+        except Exception as e:
+            result_text = f"❌ Refresh failed: {e}"
+
+    elif name == "health_check":
+        result_text = await call_api("/health")
+
     else:
-        text = result.get("results", str(result))
+        result_text = f"Unknown tool: {name}"
 
-    return ToolResult(content=[TextContent(text=text)])
-
-@server.call_tool()
-async def account_health(account: str = ""):
-    """Get account health score (0-100) and identify issues."""
-    params = {"account": account} if account else {}
-    result = await call_api("/skills/audit/account-health", params)
-
-    if "error" in result:
-        text = f"Error: {result['error']}"
-    else:
-        text = result.get("health_report", str(result))
-
-    return ToolResult(content=[TextContent(text=text)])
-
-@server.call_tool()
-async def optimization_recommendations(account: str = ""):
-    """Get optimization recommendations for underperforming campaigns."""
-    params = {"account": account} if account else {}
-    result = await call_api("/skills/optimize/recommendations", params)
-
-    if "error" in result:
-        text = f"Error: {result['error']}"
-    else:
-        text = result.get("recommendations", str(result))
-
-    return ToolResult(content=[TextContent(text=text)])
-
-@server.call_tool()
-async def account_summary(account: str = ""):
-    """Get performance summary for account(s)."""
-    params = {"account": account} if account else {}
-    result = await call_api("/skills/analytics/account-summary", params)
-
-    if "error" in result:
-        text = f"Error: {result['error']}"
-    else:
-        text = result.get("summary", str(result))
-
-    return ToolResult(content=[TextContent(text=text)])
-
-@server.call_tool()
-async def refresh_data():
-    """Manually refresh campaign data from Google Ads API."""
-    try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(f"{API_BASE}/refresh")
-            response.raise_for_status()
-            return ToolResult(content=[TextContent(text=f"✅ Data refreshed: {response.json()}")])
-    except Exception as e:
-        return ToolResult(content=[TextContent(text=f"❌ Refresh failed: {e}")])
-
-@server.call_tool()
-async def health_check():
-    """Check API health status."""
-    result = await call_api("/health")
-
-    if "error" in result:
-        text = f"❌ API Down: {result['error']}"
-    else:
-        text = f"✅ API Live: {result}"
-
-    return ToolResult(content=[TextContent(text=text)])
+    return [TextContent(type="text", text=result_text)]
 
 async def main():
     """Run MCP server."""
-    async with server:
-        print("Google Ads API HTTP MCP Server running...")
-        print(f"Backend: {API_BASE}")
-        await server.wait_for_shutdown()
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(read_stream, write_stream, server)
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
