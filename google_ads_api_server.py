@@ -235,6 +235,134 @@ async def health():
     except:
         return {"status": "error", "detail": "Campaign data not loaded"}
 
+@app.get("/skills/details/search-terms")
+async def search_terms_breakdown(
+    account: Optional[str] = Query(None, description="Filter by account"),
+    campaign: Optional[str] = Query(None, description="Filter by campaign"),
+    limit: int = Query(100, description="Max results")
+):
+    """Get search term performance breakdown for campaigns."""
+    data = load_data()
+    campaigns = data.get("campaigns", [])
+
+    if account:
+        campaigns = [c for c in campaigns if account.lower() in c.get('account_name', '').lower()]
+    if campaign:
+        campaigns = [c for c in campaigns if campaign.lower() in c.get('campaign_name', '').lower()]
+
+    # Aggregate search terms from selected campaigns
+    search_terms_agg = {}
+    for campaign in campaigns:
+        terms = campaign.get("search_terms", [])
+        for term in terms[:limit]:
+            key = term.get("search_term", "")
+            if key not in search_terms_agg:
+                search_terms_agg[key] = {
+                    "search_term": key,
+                    "impressions": 0,
+                    "clicks": 0,
+                    "cost": 0,
+                    "conversions": 0,
+                    "value": 0
+                }
+            search_terms_agg[key]["impressions"] += term.get("impressions", 0)
+            search_terms_agg[key]["clicks"] += term.get("clicks", 0)
+            search_terms_agg[key]["cost"] += term.get("cost", 0)
+            search_terms_agg[key]["conversions"] += term.get("conversions", 0)
+            search_terms_agg[key]["value"] += term.get("value", 0)
+
+    # Sort by cost
+    search_terms_sorted = sorted(
+        search_terms_agg.values(),
+        key=lambda x: x["cost"],
+        reverse=True
+    )[:limit]
+
+    # Calculate metrics
+    for term in search_terms_sorted:
+        if term["cost"] > 0:
+            term["cpc"] = round(term["cost"] / term["clicks"], 2) if term["clicks"] > 0 else 0
+            term["cpa"] = round(term["cost"] / term["conversions"], 2) if term["conversions"] > 0 else 0
+            term["ctr"] = round(100 * term["clicks"] / term["impressions"], 2) if term["impressions"] > 0 else 0
+        else:
+            term["cpc"] = term["cpa"] = term["ctr"] = 0
+
+    return {"search_terms": search_terms_sorted}
+
+@app.get("/skills/details/demographics")
+async def demographics_breakdown(
+    account: Optional[str] = Query(None, description="Filter by account")
+):
+    """Get age and gender demographic breakdown."""
+    data = load_data()
+    campaigns = data.get("campaigns", [])
+
+    if account:
+        campaigns = [c for c in campaigns if account.lower() in c.get('account_name', '').lower()]
+
+    # Aggregate demographics from selected campaigns
+    age_agg = {}
+    gender_agg = {}
+
+    for campaign in campaigns:
+        demographics = campaign.get("demographics", {})
+
+        # Age data
+        for age in demographics.get("age", []):
+            key = age.get("age_range", "")
+            if key not in age_agg:
+                age_agg[key] = {
+                    "age_range": key,
+                    "impressions": 0,
+                    "clicks": 0,
+                    "cost": 0,
+                    "conversions": 0,
+                    "value": 0
+                }
+            age_agg[key]["impressions"] += age.get("impressions", 0)
+            age_agg[key]["clicks"] += age.get("clicks", 0)
+            age_agg[key]["cost"] += age.get("cost", 0)
+            age_agg[key]["conversions"] += age.get("conversions", 0)
+            age_agg[key]["value"] += age.get("value", 0)
+
+        # Gender data
+        for gender in demographics.get("gender", []):
+            key = gender.get("gender", "")
+            if key not in gender_agg:
+                gender_agg[key] = {
+                    "gender": key,
+                    "impressions": 0,
+                    "clicks": 0,
+                    "cost": 0,
+                    "conversions": 0,
+                    "value": 0
+                }
+            gender_agg[key]["impressions"] += gender.get("impressions", 0)
+            gender_agg[key]["clicks"] += gender.get("clicks", 0)
+            gender_agg[key]["cost"] += gender.get("cost", 0)
+            gender_agg[key]["conversions"] += gender.get("conversions", 0)
+            gender_agg[key]["value"] += gender.get("value", 0)
+
+    # Calculate metrics
+    for age in age_agg.values():
+        if age["cost"] > 0:
+            age["cpa"] = round(age["cost"] / age["conversions"], 2) if age["conversions"] > 0 else 0
+            age["ctr"] = round(100 * age["clicks"] / age["impressions"], 2) if age["impressions"] > 0 else 0
+        else:
+            age["cpa"] = age["ctr"] = 0
+
+    for gender in gender_agg.values():
+        if gender["cost"] > 0:
+            gender["cpa"] = round(gender["cost"] / gender["conversions"], 2) if gender["conversions"] > 0 else 0
+            gender["ctr"] = round(100 * gender["clicks"] / gender["impressions"], 2) if gender["impressions"] > 0 else 0
+        else:
+            gender["cpa"] = gender["ctr"] = 0
+
+    return {
+        "age": sorted(age_agg.values(), key=lambda x: x["cost"], reverse=True),
+        "gender": sorted(gender_agg.values(), key=lambda x: x["cost"], reverse=True)
+    }
+
 @app.post("/refresh")
 async def refresh_data():
     """Refresh campaign data from Google Ads API (calls query_google_ads.py)."""
