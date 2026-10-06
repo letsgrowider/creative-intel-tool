@@ -21,12 +21,16 @@ app = FastAPI(
 
 # Load campaign data
 DATA_FILE = Path(__file__).parent / "growider_all_campaigns.json"
+_cached_data = None
 
-def load_data():
-    """Load campaign data from JSON."""
+def load_data(force_reload=False):
+    """Load campaign data from JSON (with caching)."""
+    global _cached_data
     if not DATA_FILE.exists():
         raise HTTPException(status_code=500, detail="Campaign data not found. Run query_google_ads.py first.")
-    return json.loads(DATA_FILE.read_text())
+    if force_reload or _cached_data is None:
+        _cached_data = json.loads(DATA_FILE.read_text())
+    return _cached_data
 
 # ============================================================================
 # SKILL 1: ANALYZE - Campaign Performance Audit
@@ -367,6 +371,7 @@ async def demographics_breakdown(
 async def refresh_data():
     """Refresh campaign data from Google Ads API (calls query_google_ads.py)."""
     import subprocess
+    global _cached_data
     try:
         result = subprocess.run(
             ["python3", "query_google_ads.py"],
@@ -376,6 +381,9 @@ async def refresh_data():
             timeout=120
         )
         if result.returncode == 0:
+            # Force reload data from file
+            _cached_data = None
+            load_data(force_reload=True)
             return {"status": "success", "message": "Campaign data refreshed from Google Ads API"}
         else:
             return {"status": "error", "message": result.stderr}
