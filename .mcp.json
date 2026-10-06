@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "uvx",
+      "args": [
+        "code-review-graph",
+        "serve"
+      ],
+      "type": "stdio"
+    },
+    "amazon-ppc-manager": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "amazon-ppc-manager/scripts/mcp-server.mts"
+      ],
+      "type": "stdio"
+    },
+    "google-ads-audit": {
+      "command": "python3",
+      "args": [
+        "google_ads_audit_mcp.py"
+      ],
+      "type": "stdio"
+    },
+    "google-ads-api-http": {
+      "command": "python3",
+      "args": [
+        "google_ads_api_mcp.py"
+      ],
+      "type": "stdio"
+    }
+  }
+}

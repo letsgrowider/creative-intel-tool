@@ -235,6 +235,25 @@ async def health():
     except:
         return {"status": "error", "detail": "Campaign data not loaded"}
 
+@app.post("/refresh")
+async def refresh_data():
+    """Refresh campaign data from Google Ads API (calls query_google_ads.py)."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["python3", "query_google_ads.py"],
+            cwd=Path(__file__).parent,
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        if result.returncode == 0:
+            return {"status": "success", "message": "Campaign data refreshed from Google Ads API"}
+        else:
+            return {"status": "error", "message": result.stderr}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.get("/")
 async def root():
     """API documentation."""
@@ -246,6 +265,7 @@ async def root():
             "audit": "/skills/audit/account-health",
             "optimize": "/skills/optimize/recommendations",
             "analytics": "/skills/analytics/account-summary",
+            "refresh": "/refresh (POST)",
             "health": "/health"
         },
         "docs": "/docs"
