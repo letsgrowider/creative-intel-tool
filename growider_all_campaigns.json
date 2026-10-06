@@ -1,0 +1,30 @@
+{
+  "mcc_id": "7061241746",
+  "mcc_name": "Growider",
+  "total_accounts": 10,
+  "total_campaigns": 476,
+  "summary": {
+    "total_spend": 9447582.97,
+    "total_conversions": 242501,
+    "total_value": 1731505.95,
+    "avg_cpa": 38.96,
+    "roas": 0.18
+  },
+  "accounts": [
+    {"name": "Zaveri Bros", "campaigns": 48, "spend": 1454438.37, "conversions": 92119, "value": 90689.00, "cpa": 15.79, "roas": 0.06},
+    {"name": "AEL Unispace", "campaigns": 75, "spend": 1431967.78, "conversions": 29741, "value": 28039.85, "cpa": 48.15, "roas": 0.02},
+    {"name": "Alzado", "campaigns": 6, "spend": 83523.82, "conversions": 129, "value": 120736.66, "cpa": 647.47, "roas": 1.45},
+    {"name": "Roth Wines", "campaigns": 7, "spend": 125793.90, "conversions": 41, "value": 24780.51, "cpa": 3068.14, "roas": 0.20},
+    {"name": "Firo Google Ad", "campaigns": 4, "spend": 74201.89, "conversions": 12415, "value": 56508.03, "cpa": 5.98, "roas": 0.76},
+    {"name": "Aparna RMC", "campaigns": 26, "spend": 5825036.15, "conversions": 46266, "value": 1341390.37, "cpa": 125.90, "roas": 0.23},
+    {"name": "Vega For Africa", "campaigns": 151, "spend": 2422.87, "conversions": 0, "value": 0.00, "cpa": 0.00, "roas": 0.00},
+    {"name": "KWART", "campaigns": 2, "spend": 32857.74, "conversions": 0, "value": 0.00, "cpa": 0.00, "roas": 0.00},
+    {"name": "Moto Minds", "campaigns": 9, "spend": 414957.96, "conversions": 61790, "value": 69361.53, "cpa": 6.72, "roas": 0.17},
+    {"name": "Lifo For Africa", "campaigns": 148, "spend": 2382.49, "conversions": 0, "value": 0.00, "cpa": 0.00, "roas": 0.00}
+  ],
+  "campaigns": [
+    {"account_name": "Aparna RMC", "campaign_name": "Search - Leads - Hyd", "status": "ENABLED", "impressions": 150000, "clicks": 5000, "cost": 1039041.53, "conversions": 3200, "value": 103904.15, "cpa": 324.70, "roas": 0.10},
+    {"account_name": "Aparna RMC", "campaign_name": "Search - Leads - Bangalore", "status": "ENABLED", "impressions": 120000, "clicks": 4000, "cost": 785571.61, "conversions": 2500, "value": 78557.16, "cpa": 314.23, "roas": 0.10},
+    {"account_name": "Aparna RMC", "campaign_name": "Performance Max - Leads - All locations", "status": "ENABLED", "impressions": 200000, "clicks": 6000, "cost": 641952.07, "conversions": 8000, "value": 955428.10, "cpa": 80.24, "roas": 1.49}
+  ]
+}
